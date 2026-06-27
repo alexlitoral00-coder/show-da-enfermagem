@@ -973,7 +973,14 @@ function loadQuestion(){
   var _ansTexts=order.map(function(orig){
     return q.a[orig].replace(/\s*\([^)]*\)/g,'').trim();
   });
-  var _maxLen=Math.max.apply(null,_ansTexts.map(function(t){return t.length;}));
+  // Equalize word count: find max words among the 3 shortest answers, cap longer ones
+  var _wcs=_ansTexts.map(function(t){return t.split(/\s+/).length;});
+  var _sortedWc=_wcs.slice().sort(function(a,b){return a-b;});
+  var _capWords=_sortedWc[2]+1; // max words = 3rd shortest + 1 extra word
+  _ansTexts=_ansTexts.map(function(t){
+    var ws=t.split(/\s+/);
+    return ws.length>_capWords ? ws.slice(0,_capWords).join(' ') : t;
+  });
   document.getElementById("answers").innerHTML=order.map(function(orig,pos){
     var txt=_ansTexts[pos];
     return '<button class="ans" data-i="'+pos+'"><span class="num">'+(pos+1)+'</span><span>'+txt+'</span></button>';
