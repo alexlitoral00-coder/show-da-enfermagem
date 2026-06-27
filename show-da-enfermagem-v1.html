@@ -970,8 +970,12 @@ function loadQuestion(){
   correctIdx=order.indexOf(q.c);
   var _ans=order.map(function(orig){return q.a[orig];});
   var _max=Math.max.apply(null,_ans.map(function(t){return t.length;}));
+  var _ansTexts=order.map(function(orig){
+    return q.a[orig].replace(/\s*\([^)]*\)/g,'').trim();
+  });
+  var _maxLen=Math.max.apply(null,_ansTexts.map(function(t){return t.length;}));
   document.getElementById("answers").innerHTML=order.map(function(orig,pos){
-    var txt=q.a[orig];
+    var txt=_ansTexts[pos];
     return '<button class="ans" data-i="'+pos+'"><span class="num">'+(pos+1)+'</span><span>'+txt+'</span></button>';
   }).join("");
   document.querySelectorAll(".ans").forEach(function(b){
