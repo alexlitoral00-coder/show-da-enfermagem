@@ -168,6 +168,7 @@
   .btn-rank:hover{background:rgba(255,207,50,.15)}
   .firebase-hint{font-size:11px;color:#7f8fce;font-style:italic;margin-top:10px;line-height:1.5}
 
+.ans{min-height:70px;height:auto;}
 </style>
 </head>
 <body>
@@ -967,8 +968,11 @@ function loadQuestion(){
   document.getElementById("toast").innerHTML="";
   var order=shuffle([0,1,2,3]);
   correctIdx=order.indexOf(q.c);
+  var _ans=order.map(function(orig){return q.a[orig];});
+  var _max=Math.max.apply(null,_ans.map(function(t){return t.length;}));
   document.getElementById("answers").innerHTML=order.map(function(orig,pos){
-    return '<button class="ans" data-i="'+pos+'"><span class="num">'+(pos+1)+'</span><span>'+q.a[orig]+'</span></button>';
+    var txt=q.a[orig];
+    return '<button class="ans" data-i="'+pos+'"><span class="num">'+(pos+1)+'</span><span>'+txt+'</span></button>';
   }).join("");
   document.querySelectorAll(".ans").forEach(function(b){
     b.addEventListener("click",function(){choose(b);});
@@ -1168,7 +1172,19 @@ function goHome(){
 
 document.getElementById("musicBtn").addEventListener("click",function(){if(!soundOn){soundOn=true;Sound.toggle();document.getElementById("soundBtn").textContent="🔊";}startBgm();});
 document.addEventListener("pointerdown",function(){if(homeVisible()&&!bgmStarted)startBgm();},{once:true});
-document.getElementById("startBtn").addEventListener("click",startGame);
+window.addEventListener("load",function(){setTimeout(function(){if(!bgmStarted&&soundOn)startBgm();},300);});
+document.getElementById("startBtn").addEventListener("click",function(){
+  var nm=document.getElementById("playerName").value.trim();
+  if(!nm){
+    var inp=document.getElementById("playerName");
+    inp.style.border="2px solid #ff4444";
+    inp.placeholder="Digite seu nome para continuar!";
+    inp.focus();
+    setTimeout(function(){inp.style.border="";inp.placeholder="Seu nome (para o ranking)";},2000);
+    return;
+  }
+  startGame();
+});
 document.getElementById("againBtn").addEventListener("click",goHome);
 document.querySelectorAll(".life").forEach(function(l){l.addEventListener("click",function(){useLifeline(l.dataset.life,l);});});
 var rankBtnEl=document.getElementById("rankBtn");if(rankBtnEl)rankBtnEl.addEventListener("click",showRanking);
