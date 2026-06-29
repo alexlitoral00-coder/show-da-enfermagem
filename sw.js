@@ -1,5 +1,5 @@
-/* Service Worker - Show da Enfermagem v1.5 */
-const CACHE = "show-enfermagem-v6";
+/* Service Worker - Show da Enfermagem v1.6 */
+const CACHE = "show-enfermagem-v7";
 const ASSETS = [
   "./show-da-enfermagem-v1.html",
   "./manifest.json"

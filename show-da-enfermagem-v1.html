@@ -331,6 +331,7 @@ const Sound=(()=>{let ctx,on=true,loops=[];
 var $=function(s){return document.querySelector(s);};
 var deck=[],idx=0,locked=false,correctIdx=0;
 var correctCount=0,wrongCount=0,startTime=0;
+var skipsLeft=3;
 
 function formatTime(sec){
   var m=Math.floor(sec/60),s=sec%60;
@@ -360,13 +361,14 @@ function startGame(){
   Sound.open(); stopBgm(); startQuizBgm();
   document.getElementById("musicBtn").textContent="🔊 Tocar musica";
   document.getElementById("musicBtn").classList.remove("playing");
-  deck=buildDeck();idx=0;locked=false;correctCount=0;wrongCount=0;
+  deck=buildDeck();idx=0;locked=false;correctCount=0;wrongCount=0;skipsLeft=3;
   startTime=Date.now();
   document.getElementById("home").classList.add("hidden");
   document.getElementById("end").classList.add("hidden");
   document.getElementById("rank").classList.add("hidden");
   document.getElementById("game").classList.remove("hidden");
   document.querySelectorAll(".life").forEach(function(l){l.classList.remove("used");});
+  updateSkipBtn();
   loadQuestion();
 }
 
@@ -412,10 +414,11 @@ function choose(btn){
     var correctBtn=document.querySelector('.ans[data-i="'+correctIdx+'"]');
     if(picked===correctIdx){
       btn.classList.add("correct");Sound.correct();correctCount++;
-      setTimeout(function(){idx++;if(idx>=TOTAL)endGame();else loadQuestion();},1100);
+      setTimeout(function(){idx++;if(idx>=TOTAL)endGame(false);else loadQuestion();},1100);
     }else{
       btn.classList.add("wrong");correctBtn.classList.add("correct");Sound.wrong();wrongCount++;
-      setTimeout(function(){idx++;if(idx>=TOTAL)endGame();else loadQuestion();},1500);
+      toast("❌ Você errou e foi ELIMINADO! A resposta correta estava destacada.");
+      setTimeout(function(){endGame(true);},2200);
     }
   },1600);
 }
@@ -432,11 +435,13 @@ function useLifeline(type,el){
     toast("Duas alternativas incorretas foram eliminadas.");
   }
   if(type==="pular"){
-    el.classList.add("used");
+    if(skipsLeft<=0)return;
+    skipsLeft--;
+    updateSkipBtn();
     var q=deck[idx];
     var pool=BANK.filter(function(x){return x.d===q.d&&deck.indexOf(x)<0;});
     if(pool.length)deck[idx]=shuffle(pool)[0];
-    toast("Pergunta pulada! (nao conta como certa ou errada)");
+    toast("Pergunta pulada! Restam "+skipsLeft+" pulo(s). (nao conta como certa ou errada)");
     setTimeout(loadQuestion,700);
   }
   if(type==="cartas"){el.classList.add("used");openCards();}
@@ -482,21 +487,42 @@ function pickCard(card){
 
 function toast(h){document.getElementById("toast").innerHTML='<div class="toast">'+h+'</div>';}
 
-function endGame(){
+function updateSkipBtn(){
+  var btn=document.querySelector('.life[data-life="pular"]');
+  if(!btn)return;
+  if(skipsLeft>0){
+    btn.classList.remove("used");
+    btn.innerHTML='<span class="ico">⏭️</span>PULAR ('+skipsLeft+')';
+  }else{
+    btn.classList.add("used");
+    btn.innerHTML='<span class="ico">⏭️</span>PULAR (0)';
+  }
+}
+
+function endGame(eliminated){
   var elapsed=Math.round((Date.now()-startTime)/1000);
   Sound.stopSuspense();stopQuizBgm();
   document.getElementById("game").classList.add("hidden");
   document.getElementById("end").classList.remove("hidden");
-  var pct=Math.round(correctCount/TOTAL*100);
-  var medal=pct>=90?"🏆":pct>=70?"🥇":pct>=50?"🥈":pct>=30?"🥉":"📋";
-  document.getElementById("endMedal").textContent=medal;
-  if(pct>=90){document.getElementById("endTitle").textContent="Excelente! Nota maxima!";Sound.win();}
-  else if(pct>=70){document.getElementById("endTitle").textContent="Muito bem!";Sound.win();}
-  else if(pct>=50){document.getElementById("endTitle").textContent="Bom resultado!";Sound.fanfare();}
-  else{document.getElementById("endTitle").textContent="Continue estudando!";Sound.wrong();}
-  document.getElementById("endPrize").textContent=correctCount+"/"+TOTAL;
-  document.getElementById("endMsg").textContent="Voce acertou "+correctCount+" de "+TOTAL+" perguntas ("+pct+"%)";
-  document.getElementById("endStats").textContent="Tempo total: "+formatTime(elapsed);
+  if(eliminated){
+    document.getElementById("endMedal").textContent="💀";
+    document.getElementById("endTitle").textContent="Voce foi eliminado!";
+    Sound.wrong();
+    document.getElementById("endPrize").textContent=correctCount+" acertos";
+    document.getElementById("endMsg").textContent="Voce acertou "+correctCount+" pergunta(s) antes de errar. Tente novamente!";
+    document.getElementById("endStats").textContent="Tempo: "+formatTime(elapsed)+" · Eliminado na pergunta "+(idx+1);
+  }else{
+    var pct=Math.round(correctCount/TOTAL*100);
+    var medal=pct>=90?"🏆":pct>=70?"🥇":pct>=50?"🥈":pct>=30?"🥉":"📋";
+    document.getElementById("endMedal").textContent=medal;
+    if(pct>=90){document.getElementById("endTitle").textContent="Excelente! Nota maxima!";Sound.win();}
+    else if(pct>=70){document.getElementById("endTitle").textContent="Muito bem!";Sound.win();}
+    else if(pct>=50){document.getElementById("endTitle").textContent="Bom resultado!";Sound.fanfare();}
+    else{document.getElementById("endTitle").textContent="Continue estudando!";Sound.wrong();}
+    document.getElementById("endPrize").textContent=correctCount+"/"+TOTAL;
+    document.getElementById("endMsg").textContent="Voce acertou "+correctCount+" de "+TOTAL+" perguntas ("+pct+"%)";
+    document.getElementById("endStats").textContent="Tempo total: "+formatTime(elapsed);
+  }
   var nameEl=document.getElementById("playerName");
   var name=(nameEl&&nameEl.value?nameEl.value.trim():"")||"Anonimo";
   submitRanking(name,correctCount,elapsed);
